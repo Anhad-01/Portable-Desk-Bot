@@ -6,7 +6,6 @@
 #include <Arduino_JSON.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SH110X.h>
 #include <Adafruit_SSD1306.h>
 #include "time.h"
 #include <sys/time.h>
@@ -17,21 +16,33 @@
 
 #include "secrets.h"
 
+struct Eye;
+
 // ==================================================
 // 1. ASSETS & CONFIG
 // ==================================================
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
-#define SDA_PIN 8
-#define SCL_PIN 9
+#define SDA_PIN 0
+#define SCL_PIN 1
 #define TOUCH_PIN 7
+
+// This 0.96" OLED passed oled_test.ino with the SSD1306 driver.
+// Keep the old color names so the drawing code below stays unchanged.
+#define SH110X_WHITE SSD1306_WHITE
+#define SH110X_BLACK SSD1306_BLACK
 
 // ---- TEST MODE: no WiFi / touch sensor needed. Set to 0 for the real build ----
 #define TEST_MODE 0
 const unsigned long TEST_PAGE_MS = 10000;  // each screen stays for 10 s
 const unsigned long TEST_MOOD_MS = 1100;   // on the eyes screen, mood changes this often
 
-Adafruit_SH1106G display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+void setDisplayContrast(uint8_t contrast) {
+  display.ssd1306_command(SSD1306_SETCONTRAST);
+  display.ssd1306_command(contrast);
+}
 
 // --- WEATHER ICONS ---
 const unsigned char bmp_clear[] PROGMEM = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x80, 0x00, 0x00, 0x01, 0x80, 0x00, 0x00, 0x01, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0xc0, 0x80, 0x00, 0x0f, 0xf0, 0x00, 0x00, 0x3f, 0xfc, 0x00, 0x00, 0x7f, 0xfe, 0x00, 0x00, 0xff, 0xff, 0x00, 0x06, 0xff, 0xff, 0x60, 0x06, 0xff, 0xff, 0x60, 0x06, 0xff, 0xff, 0x60, 0x00, 0xff, 0xff, 0x00, 0x3e, 0xff, 0xff, 0x7c, 0x3e, 0xff, 0xff, 0x7c, 0x3e, 0xff, 0xff, 0x7c, 0x00, 0xff, 0xff, 0x00, 0x06, 0xff, 0xff, 0x60, 0x06, 0xff, 0xff, 0x60, 0x06, 0xff, 0xff, 0x60, 0x00, 0xff, 0xff, 0x00, 0x00, 0x7f, 0xfe, 0x00, 0x00, 0x3f, 0xfc, 0x00, 0x01, 0x0f, 0xf0, 0x80, 0x00, 0x03, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x80, 0x00, 0x00, 0x01, 0x80, 0x00, 0x00, 0x01, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -447,7 +458,7 @@ void handleTouch() {
       lastPageSwitch = now;
       if (tapCounter == 2) {
         highBrightness = !highBrightness;
-        display.setContrast(highBrightness ? 255 : 1);
+        setDisplayContrast(highBrightness ? 255 : 1);
         display.display();
       } else if (tapCounter == 1) {
         if (currentPage == 3) currentPage = 1;
@@ -930,7 +941,9 @@ void setup() {
   Serial.begin(115200);
   Wire.begin(SDA_PIN, SCL_PIN);
   pinMode(TOUCH_PIN, INPUT_PULLDOWN);  // no floating pin when sensor is absent
-  display.begin(0x3C, true);
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    while (true) delay(100);
+  }
   display.setTextColor(SH110X_WHITE);
 
   // Hold touch for 3 sec at boot to force config mode

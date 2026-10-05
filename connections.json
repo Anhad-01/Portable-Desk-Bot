@@ -1,0 +1,72 @@
+{
+  "project": "Desk Buddy",
+  "source": "Circuit diagram shared by the user, updated so OLED and touch module VCC use 3V3",
+  "components": [
+    {
+      "id": "battery",
+      "type": "LiPo battery",
+      "nominal_voltage": "3.7V",
+      "pins": ["+", "-"]
+    },
+    {
+      "id": "charger",
+      "type": "TP4056 USB-C charging module (with DW01/8205 protection chips)",
+      "pins": ["USB-C", "B+", "B-", "OUT+", "OUT-"]
+    },
+    {
+      "id": "switch",
+      "type": "Slide switch (used as on/off)",
+      "pins": ["A", "B"]
+    },
+    {
+      "id": "mcu",
+      "type": "ESP32-C3 Super Mini",
+      "pins_used": ["5V", "3V3", "G", "GPIO7", "GPIO8", "GPIO9"]
+    },
+    {
+      "id": "oled",
+      "type": "I2C OLED display, 128x64",
+      "i2c_address": "0x3C",
+      "pins": ["GND", "VCC", "SCK", "SDA"]
+    },
+    {
+      "id": "touch",
+      "type": "Capacitive touch module (TTP223 style)",
+      "pins": ["Gnd", "VCC", "D7"]
+    }
+  ],
+  "connections": [
+    { "id": 1,  "from": "battery.+",   "to": "charger.B+",  "wire": "red",    "purpose": "battery positive to charger" },
+    { "id": 2,  "from": "battery.-",   "to": "charger.B-",  "wire": "black",  "purpose": "battery negative to charger" },
+    { "id": 3,  "from": "battery.+",   "to": "mcu.5V",      "wire": "red",    "purpose": "positive power rail to the ESP32 (not switched)" },
+    { "id": 4,  "from": "charger.OUT-", "to": "switch.A",   "wire": "black",  "purpose": "negative line into the power switch" },
+    { "id": 5,  "from": "switch.B",    "to": "mcu.G",       "wire": "black",  "purpose": "switched ground to the ESP32" },
+    { "id": 6,  "from": "oled.GND",    "to": "mcu.G",       "wire": "black",  "purpose": "OLED ground" },
+    { "id": 7,  "from": "oled.VCC",    "to": "mcu.3V3",     "wire": "red",    "purpose": "OLED power (3.3V)" },
+    { "id": 8,  "from": "oled.SCK",    "to": "mcu.GPIO9",   "wire": "green",  "purpose": "I2C clock (SCL)" },
+    { "id": 9,  "from": "oled.SDA",    "to": "mcu.GPIO8",   "wire": "purple", "purpose": "I2C data (SDA)" },
+    { "id": 10, "from": "touch.Gnd",   "to": "mcu.G",       "wire": "black",  "purpose": "touch module ground" },
+    { "id": 11, "from": "touch.VCC",   "to": "mcu.3V3",     "wire": "red",    "purpose": "touch module power (3.3V)" },
+    { "id": 12, "from": "touch.D7",    "to": "mcu.GPIO7",   "wire": "blue",   "purpose": "touch signal" }
+  ],
+  "nets": {
+    "positive_rail": ["battery.+", "charger.B+", "charger.OUT+", "mcu.5V"],
+    "rail_3v3": ["mcu.3V3", "oled.VCC", "touch.VCC"],
+    "battery_negative": ["battery.-", "charger.B-", "charger.OUT-", "switch.A"],
+    "switched_ground": ["switch.B", "mcu.G", "oled.GND", "touch.Gnd"],
+    "i2c_scl": ["oled.SCK", "mcu.GPIO1"],
+    "i2c_sda": ["oled.SDA", "mcu.GPIO0"],
+    "touch_signal": ["touch.D7", "mcu.GPIO7"]
+  },
+  "code_pin_mapping": {
+    "SDA_PIN": 0,
+    "SCL_PIN": 1,
+    "TOUCH_PIN": 7
+  },
+  "notes": [
+    "Connection 3 is drawn passing behind the battery graphic. Electrically it is the same point as charger B+ / OUT+, which are joined on the TP4056 board.",
+    "Only the negative line goes through the slide switch, so the positive rail stays live and ground is what the switch breaks.",
+    "The USB-C port on the TP4056 is only for charging the battery; the ESP32 has its own USB-C port for programming.",
+    "The 3V3 rail comes from the ESP32 Super Mini's onboard regulator, which is fed from the 5V pin."
+  ]
+}
