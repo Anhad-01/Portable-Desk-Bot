@@ -923,7 +923,7 @@ void playBootAnimation() {
 
   // Text Display - "PR-TECH"
   display.setFont(&FreeSansBold9pt7b);
-  String bootText = "ESCLabs";
+  String bootText = "Desk Bot";
 
   // Calculate width to center it perfectly
   int16_t x1, y1;
